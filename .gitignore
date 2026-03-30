@@ -1,0 +1,13 @@
+# Environment / secrets
+.env
+
+# Python cache
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Tracking data (runtime state, not source)
+tracking_data/api_usage.json
+
+# macOS
+.DS_Store

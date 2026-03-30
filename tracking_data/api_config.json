@@ -1,0 +1,11 @@
+{
+  "enabled": true,
+  "daily_limit": 1000,
+  "warning_thresholds": [
+    80,
+    90,
+    95
+  ],
+  "enforce_limit": true,
+  "reset_hour": 0
+}
