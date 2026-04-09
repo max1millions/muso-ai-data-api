@@ -1,3 +1,21 @@
+"""
+List Profile Credits
+====================
+Gets and displays credit history for a MUSO.ai artist profile.
+
+Enter a profile ID directly or search by artist name. Supports pagination
+and shows each credit's track title, release, label, and role(s), with an
+optional full JSON dump.
+
+Usage:
+    python list_profile_credits.py
+
+Dependencies:
+    - MUSO_API_KEY in .env
+    - search_name.py
+    - request_tracker.py
+"""
+
 import requests
 import sys
 import time

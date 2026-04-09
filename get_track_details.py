@@ -1,3 +1,25 @@
+"""
+Get Track Details
+=================
+Gets and displays details for a MUSO.ai track.
+
+Three ways to search:
+  1. By MUSO.ai track ID
+  2. By track title
+  3. By artist name, then filter by track title
+
+Shows ISRCs, release info, credited artists, and streaming URLs,
+with an optional full JSON dump.
+
+Usage:
+    python get_track_details.py
+
+Dependencies:
+    - MUSO_API_KEY in .env
+    - search_name.py
+    - request_tracker.py
+"""
+
 import requests
 import sys
 from typing import Dict, Any, Optional, List, Tuple
@@ -11,16 +33,6 @@ load_dotenv()
 API_KEY = os.getenv("MUSO_API_KEY")
 if not API_KEY:
     raise ValueError("MUSO_API_KEY not found in environment variables. Please check your .env file.")
-
-#
-#
-#
-#
-##RETURNS A SUMMARY OF THE TRACK DETAILS & JSON RESPONSE FOR A GIVEN TRACK ID, TITLE, OR ARTIST+TITLE
-#
-#
-#
-#
 
 # Import the artist search functionality
 from search_name import search_artist

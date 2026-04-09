@@ -1,3 +1,19 @@
+"""
+Get List Roles
+==============
+Gets and displays all credit roles available in the MUSO.ai API.
+
+Fetches all roles or a specific page, shows parent/child role pairs,
+and offers an optional full JSON dump.
+
+Usage:
+    python get_list_roles.py
+
+Dependencies:
+    - MUSO_API_KEY in .env
+    - request_tracker.py
+"""
+
 import requests
 import sys
 import time

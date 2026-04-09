@@ -1,7 +1,18 @@
 """
 Get Profile Details
 ===================
-Returns a summary of the profile details and JSON response for a given artist name or profile ID.
+Gets and displays detailed info for a MUSO.ai artist profile.
+
+Enter a profile ID or search by name. Shows bio, IPI numbers, social links,
+group memberships, and credit stats, with an optional full JSON dump.
+
+Usage:
+    python get_profile_details.py [profile_id_or_artist_name]
+
+Dependencies:
+    - MUSO_API_KEY in .env
+    - search_name.py
+    - request_tracker.py
 """
 
 import requests
