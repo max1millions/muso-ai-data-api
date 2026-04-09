@@ -15,53 +15,42 @@ API_KEY = os.getenv("MUSO_API_KEY")
 if not API_KEY:
     raise ValueError("MUSO_API_KEY not found in environment variables. Please check your .env file.")
 
-def search_artist(artist_name, api_key):
-    """Search for an artist using the MUSO.ai API with retry logic for rate limiting."""
-    
-    # Check if we can make the request
+def _search(keyword, api_key, search_type):
+    """Core search function used by search_artist and search_company."""
+
     can_make, message = can_make_api_request(1)
     if not can_make:
         print(f"Cannot make API request: {message}")
         sys.exit(1)
-    
+
     url = "https://api.developer.muso.ai/v4/search"
-    
+
     headers = {
         "x-api-key": api_key,
         "Content-Type": "application/json"
     }
-    
-    # Creating a complete payload according to the API documentation
+
     payload = {
-        "keyword": artist_name,
-        "type": ["profile"],
-        # "childCredits": ["Composer"],
+        "keyword": keyword,
+        "type": [search_type],
         "limit": 11,
         "offset": 0,
-        # "releaseDateEnd": "2025-05-21",
-        # "releaseDateStart": "2000-01-01"
     }
-    
-    # Fixed number of retries with exponential backoff
+
     max_retries = 5
     retries = 0
-    
+
     while retries <= max_retries:
         try:
             response = requests.post(url, headers=headers, json=payload)
             response.raise_for_status()
-            
-            # Record successful request
             record_api_request(1, "search")
-            
             return response.json()
         except requests.exceptions.HTTPError as e:
-            # Check if it's a rate limit error (HTTP 429)
             if e.response.status_code == 429:
                 retries += 1
                 if retries <= max_retries:
-                    # Wait with exponential backoff
-                    wait_time = min(2 ** retries, 60)  # Cap at 60 seconds
+                    wait_time = min(2 ** retries, 60)
                     print(f"Rate limit hit during search. Retrying in {wait_time} seconds... (attempt {retries}/{max_retries})")
                     time.sleep(wait_time)
                     continue
@@ -74,10 +63,19 @@ def search_artist(artist_name, api_key):
         except requests.exceptions.RequestException as e:
             print(f"Error occurred during API request: {e}")
             sys.exit(1)
-    
-    # This should not be reached
+
     print("Unexpected error in search function")
     sys.exit(1)
+
+
+def search_artist(artist_name, api_key):
+    """Search for an artist/performer profile using the MUSO.ai API."""
+    return _search(artist_name, api_key, "profile")
+
+
+def search_organization(org_name, api_key):
+    """Search for an organization (label, publisher, etc.) using the MUSO.ai API."""
+    return _search(org_name, api_key, "organization")
 
 def main():
     print("MUSO.ai Artist Search")

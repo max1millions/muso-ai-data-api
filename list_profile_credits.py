@@ -3,7 +3,7 @@ List Profile Credits
 ====================
 Gets and displays credit history for a MUSO.ai artist profile.
 
-Enter a profile ID directly or search by artist name. Supports pagination
+Enter a profile ID directly or search by artist name only. Supports pagination
 and shows each credit's track title, release, label, and role(s), with an
 optional full JSON dump.
 

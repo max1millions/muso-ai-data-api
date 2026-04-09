@@ -1,13 +1,13 @@
 """
 Get Profile Details
 ===================
-Gets and displays detailed info for a MUSO.ai artist profile.
+Gets and displays detailed info for a MUSO.ai artist profile or organization.
 
 Enter a profile ID or search by name. Shows bio, IPI numbers, social links,
 group memberships, and credit stats, with an optional full JSON dump.
 
 Usage:
-    python get_profile_details.py [profile_id_or_artist_name]
+    python get_profile_details.py [profile_id_or_name]
 
 Dependencies:
     - MUSO_API_KEY in .env
@@ -30,7 +30,7 @@ if not API_KEY:
     raise ValueError("MUSO_API_KEY not found in environment variables. Please check your .env file.")
 
 # Import the search functionality
-from search_name import search_artist
+from search_name import search_artist, search_organization
 # Import request tracking
 from request_tracker import record_api_request, can_make_api_request, print_api_status
 
@@ -168,49 +168,58 @@ def display_profile_summary(profile_data: Dict[str, Any]) -> None:
             print(bio)
 
 def search_muso_artist(artist_name: str) -> Dict[str, Any]:
-    """
-    Search for an artist using the MUSO.ai API.
-    
-    Args:
-        artist_name (str): Name of the artist to search for
-        
-    Returns:
-        Dict[str, Any]: Response from the MUSO.ai API
-    """
-    print(f"Searching MUSO.ai for: {artist_name}")
+    """Search for an artist using the MUSO.ai API."""
+    print(f"Searching MUSO.ai for artist: {artist_name}")
     return search_artist(artist_name, API_KEY)
 
-def extract_artist_profiles(search_result: Dict[str, Any]) -> List[Tuple[str, str, str]]:
+def search_muso_organization(org_name: str) -> Dict[str, Any]:
+    """Search for an organization using the MUSO.ai API."""
+    print(f"Searching MUSO.ai for organization: {org_name}")
+    return search_organization(org_name, API_KEY)
+
+def _extract_items(search_result: Dict[str, Any], result_key: str) -> List[Tuple[str, str, str]]:
     """
-    Extract artist profiles from search results.
-    
+    Generic extractor for search result items.
+
     Args:
         search_result (Dict[str, Any]): Response from the MUSO.ai API
-        
+        result_key (str): Top-level key inside 'data' (e.g. 'profiles', 'organizations')
+
     Returns:
         List[Tuple[str, str, str]]: List of (muso_id, name, additional_info) tuples
     """
     results = []
-    
-    if 'data' not in search_result or 'profiles' not in search_result['data'] or 'items' not in search_result['data']['profiles']:
+
+    if 'data' not in search_result:
         return results
-    
-    for item in search_result['data']['profiles']['items']:
-        if 'id' in item and 'name' in item:
-            muso_id = item['id']
-            name = item['name']
-            
-            # Get additional info to help verify the artist
-            popularity = item.get('popularity', 'Unknown')
-            credit_count = item.get('creditCount', 'Unknown')
-            
-            # Get common credits/roles if available
-            common_credits = item.get('commonCredits', [])
-            credits_str = ', '.join(common_credits) if common_credits else 'Unknown'
-            
-            additional_info = f"Popularity: {popularity}, Credits: {credit_count}, Roles: {credits_str}"
-            results.append((muso_id, name, additional_info))
-    
+    data = search_result['data']
+    if result_key not in data or 'items' not in data[result_key]:
+        return results
+
+    for item in data[result_key]['items']:
+        if 'id' not in item or 'name' not in item:
+            continue
+        muso_id = item['id']
+        name = item['name']
+        popularity = item.get('popularity', 'Unknown')
+        credit_count = item.get('creditCount', 'Unknown')
+        common_credits = item.get('commonCredits', [])
+        credits_str = ', '.join(common_credits) if common_credits else 'Unknown'
+        additional_info = f"Popularity: {popularity}, Credits: {credit_count}, Roles: {credits_str}"
+        results.append((muso_id, name, additional_info))
+
+    return results
+
+def extract_artist_profiles(search_result: Dict[str, Any]) -> List[Tuple[str, str, str]]:
+    """Extract artist profiles from search results."""
+    return _extract_items(search_result, 'profiles')
+
+def extract_organization_profiles(search_result: Dict[str, Any]) -> List[Tuple[str, str, str]]:
+    """Extract organization results from search results."""
+    # Try both 'organizations' and 'profiles' keys since the API key may vary
+    results = _extract_items(search_result, 'organizations')
+    if not results:
+        results = _extract_items(search_result, 'profiles')
     return results
 
 def is_profile_id(input_str: str) -> bool:
@@ -236,15 +245,38 @@ def main():
     print("\nCurrent API Status:")
     print_api_status()
     print()
-    
-    # Get the artist name or profile ID from command line args or input
+
+    # Determine search mode from optional second arg, or prompt
+    if len(sys.argv) > 2:
+        mode_arg = sys.argv[2].lower()
+        if mode_arg in ('org', 'organization', 'company'):
+            search_mode = 'organization'
+        else:
+            search_mode = 'artist'
+    else:
+        print("Search type:")
+        print("  1. Artist / Performer")
+        print("  2. Organization (label, publisher, etc.)")
+        while True:
+            mode_choice = input("Choose (1 or 2): ").strip()
+            if mode_choice == '1':
+                search_mode = 'artist'
+                break
+            elif mode_choice == '2':
+                search_mode = 'organization'
+                break
+            print("Please enter 1 or 2.")
+        print()
+
+    # Get the name or profile ID from command line args or input
     if len(sys.argv) > 1:
         user_input = sys.argv[1]
     else:
-        user_input = input("Enter artist/performer name or Profile ID: ")
+        label = "Organization name or Profile ID" if search_mode == 'organization' else "Artist/performer name or Profile ID"
+        user_input = input(f"Enter {label}: ")
     
     if not user_input:
-        print("Error: Artist name or Profile ID is required.")
+        print("Error: A name or Profile ID is required.")
         sys.exit(1)
     
     # Check if input looks like a Profile ID
@@ -253,14 +285,18 @@ def main():
         muso_id = user_input
         profile_name = "Unknown"
     else:
-        # Search for the artist by name
-        search_result = search_muso_artist(user_input)
-        
-        # Extract artist profiles
-        profiles = extract_artist_profiles(search_result)
+        # Search by name
+        if search_mode == 'organization':
+            search_result = search_muso_organization(user_input)
+            profiles = extract_organization_profiles(search_result)
+            entity_label = "organization"
+        else:
+            search_result = search_muso_artist(user_input)
+            profiles = extract_artist_profiles(search_result)
+            entity_label = "artist"
         
         if not profiles:
-            print("No profiles found for this artist. Try a different search term.")
+            print(f"No profiles found for this {entity_label}. Try a different search term.")
             sys.exit(1)
         
         # Display profiles
@@ -285,7 +321,6 @@ def main():
             print("Operation cancelled.")
             sys.exit(0)
         
-        # Get the selected profile
         selected_profile = profiles[selection - 1]
         muso_id = selected_profile[0]
         profile_name = selected_profile[1]
