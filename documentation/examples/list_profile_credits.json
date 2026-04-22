@@ -1,0 +1,41 @@
+{
+    "result": "ok",
+    "code": 200,
+    "data": {
+      "items": [
+        {
+          "credits": [
+            {
+              "parent": "Artist",
+              "child": "Primary Artist"
+            }
+          ],
+          "track": {
+            "id": "1c14313b-7279-4a6d-84f5-91dbf8218993",
+            "title": "Ptsd",
+            "popularity": 90,
+            "spotifyPreviewUrl": "https://p.scdn.co/mp3-preview/1ce82431357df0b5e36c5d23ba328e8d553f529c?cid=7c1e5228cd734e0e880aa8d6ad5fef35",
+            "spotifyId": "0bMJsLChXDpHuw6HZXIxJq"
+          },
+          "album": {
+            "id": "7f6797f6-9a83-4490-be0e-e15163adc0f0",
+            "title": "Organized Grime",
+            "albumArt": "https://i.scdn.co/image/ab67616d0000b273c2a0eb2d1c39f61363e94831"
+          },
+          "releaseDate": "2019-04-18",
+          "label": "℗ 2020 Machine Entertainment Group/Epic Records",
+          "publisher": "© 2020 Machine Entertainment Group/Epic Records",
+          "artists": [
+            {
+              "id": "d51a11fd-c20a-4a36-8054-57af8ea870ff",
+              "name": "JAY-Z",
+              "avatarUrl": "https://i.scdn.co/image/ab6761610000f178c75afcd5a9027f60eaebb5e4"
+            }
+          ]
+        }
+      ],
+      "limit": 1,
+      "offset": 0,
+      "totalCount": 77
+    }
+  }

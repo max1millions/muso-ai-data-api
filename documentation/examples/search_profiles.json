@@ -1,0 +1,17 @@
+{
+    "result": "ok",
+    "code": 200,
+    "data": [
+      {
+        "id": "f0831618-43c0-4634-99a8-d57b236856b4",
+        "name": "Bad Bunny",
+        "avatarUrl": "https://i.scdn.co/image/2c25dd70e44675779df17b7cc26dadda5bcf1fb3",
+        "commonCredits": [
+          "Producer",
+          "Songwriter"
+        ],
+        "creditCount": 77,
+        "collaboratorsCount": 28
+      }
+    ]
+  }
