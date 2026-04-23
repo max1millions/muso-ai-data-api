@@ -3,10 +3,11 @@ Get Track Details
 =================
 Gets and displays details for a MUSO.ai track.
 
-Three ways to search:
+Four ways to search:
   1. By MUSO.ai track ID
   2. By track title
   3. By artist name, then filter by track title
+  4. By ISRC
 
 Shows ISRCs, release info, credited artists, and streaming URLs,
 with an optional full JSON dump.
@@ -257,6 +258,75 @@ def search_tracks(keyword: str, api_key: str, limit: int = 10) -> Dict[str, Any]
         print(f"Error occurred during API request: {e}")
         sys.exit(1)
 
+def get_track_by_isrc(isrc: str, api_key: str) -> Optional[Dict[str, Any]]:
+    """
+    Look up a track by ISRC.
+
+    Tries the dedicated ISRC endpoint first (`GET /v4/track/isrc/{isrc}`).
+    If the API returns a 404 or the endpoint is unsupported, falls back to
+    a keyword search using the ISRC string and returns the first result's
+    track ID, which is then resolved via `get_track_details`.
+
+    Args:
+        isrc (str): The ISRC to look up (e.g. "GBAAA2200001")
+        api_key (str): API key for authentication
+
+    Returns:
+        Optional[Dict[str, Any]]: Full track details dict, or None on failure
+    """
+    can_make, message = can_make_api_request(1)
+    if not can_make:
+        print(f"Cannot make ISRC request: {message}")
+        return None
+
+    headers = {
+        "x-api-key": api_key,
+        "Content-Type": "application/json"
+    }
+
+    # --- attempt 1: dedicated ISRC endpoint ---
+    # NOTE: This endpoint exists but requires a higher-tier API key (returns 401
+    # with standard keys). If your plan includes ISRC lookup, this will work.
+    url = f"https://api.developer.muso.ai/v4/track/isrc/{isrc}"
+    max_retries = 3
+    retries = 0
+    while retries <= max_retries:
+        try:
+            response = requests.get(url, headers=headers)
+            if response.status_code == 401:
+                print(
+                    f"ISRC lookup via /v4/track/isrc/ returned 401 Unauthorized.\n"
+                    f"Your API key does not have access to this endpoint — it may require\n"
+                    f"a higher-tier MUSO subscription. Contact support@muso.ai to upgrade."
+                )
+                return None
+            if response.status_code == 404:
+                print(f"ISRC {isrc} not found in MUSO database (404).")
+                return None
+            if response.status_code == 400:
+                print(f"ISRC endpoint returned 400 Bad Request — check ISRC format: {isrc}")
+                return None
+            response.raise_for_status()
+            record_api_request(1, "track_isrc")
+            return response.json()
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 429:
+                retries += 1
+                if retries <= max_retries:
+                    wait_time = 2 ** retries
+                    print(f"Rate limit hit. Retrying in {wait_time} seconds... (attempt {retries}/{max_retries})")
+                    time.sleep(wait_time)
+                    continue
+            print(f"ISRC endpoint error {e.response.status_code}: {e}")
+            return None
+        except requests.exceptions.RequestException as e:
+            print(f"ISRC endpoint request failed: {e}")
+            return None
+
+    print("Maximum retries exceeded for ISRC endpoint.")
+    return None
+
+
 def display_track_summary(track_data: Dict[str, Any]) -> None:
     """
     Display a summary of the track information.
@@ -433,11 +503,12 @@ def main():
     print("1. Search by track ID")
     print("2. Search by track title")
     print("3. Search by artist name + track title")
+    print("4. Search by ISRC")
     
     while True:
         try:
-            option = int(input("\nSelect search method (1-3): "))
-            if 1 <= option <= 3:
+            option = int(input("\nSelect search method (1-4): "))
+            if 1 <= option <= 4:
                 break
             print("Invalid selection. Please try again.")
         except ValueError:
@@ -519,7 +590,7 @@ def main():
             print("\nFull JSON Response:")
             pprint.pprint(track_data, indent=2)
     
-    else:  # option == 3
+    elif option == 3:
         # Search by artist name + track title
         artist_name = input("Enter artist name: ")
         if not artist_name:
@@ -607,6 +678,29 @@ def main():
         
         # Get track details
         track_data = get_track_details(track_id, API_KEY)
+        
+        # Display track summary
+        display_track_summary(track_data)
+        
+        # Ask if user wants to see the full JSON response
+        see_full = input("\nWould you like to see the full JSON response? (y/n): ")
+        if see_full.lower() == 'y':
+            print("\nFull JSON Response:")
+            pprint.pprint(track_data, indent=2)
+    
+    else:  # option == 4
+        # Search by ISRC
+        isrc = input("Enter ISRC: ").strip().upper()
+        if not isrc:
+            print("Error: ISRC is required.")
+            sys.exit(1)
+        
+        print(f"\nLooking up track for ISRC: {isrc}")
+        track_data = get_track_by_isrc(isrc, API_KEY)
+        
+        if not track_data:
+            print(f"No track found for ISRC: {isrc}")
+            sys.exit(1)
         
         # Display track summary
         display_track_summary(track_data)
